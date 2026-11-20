@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Unified Ward & NBU Fluid Calculator</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #f1f5f9;
+      color: #1e293b;
+      margin: 0;
+      padding: 16px;
+    }
+    .container {
+      max-width: 650px;
+      margin: 0 auto;
+      background: #ffffff;
+      padding: 22px;
+      border-radius: 12px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    }
+    h1 {
+      font-size: 1.35rem;
+      color: #0f4c81;
+      margin-top: 0;
+      margin-bottom: 14px;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 10px;
+    }
+    .tabs {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 8px;
+      margin-bottom: 20px;
+    }
+    @media (min-width: 520px) {
+      .tabs {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+    .tab-btn {
+      padding: 10px 8px;
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      color: #334155;
+      font-weight: 600;
+      font-size: 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .tab-btn.active {
+      background: #0f4c81;
+      color: #ffffff;
+      border-color: #0f4c81;
+    }
+    .tab-btn.nbu-tab.active {
+      background: #0d9488;
+      border-color: #0d9488;
+    }
+    .section {
+      display: none;
+    }
+    .section.active {
+      display: block;
+    }
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      border-radius: 4px;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+    }
+    .badge-ward {
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+    .badge-nbu {
+      background: #ccfbf1;
+      color: #0f766e;
+    }
+    .form-group {
+      margin-bottom: 14px;
+    }
+    label {
+      display: block;
+      font-size: 0.88rem;
+      font-weight: 600;
+      margin-bottom: 5px;
+      color: #334155;
+    }
+    input[type="number"], select {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 0.98rem;
+      box-sizing: border-box;
+    }
+    .row {
+      display: flex;
+      gap: 12px;
+    }
+    .row .form-group {
+      flex: 1;
+    }
+    .checkbox-group {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      padding: 10px 12px;
+      border-radius: 6px;
+      margin-bottom: 14px;
+    }
+    .checkbox-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .checkbox-item:last-child {
+      margin-bottom: 0;
+    }
+    button.calc-btn {
+      width: 100%;
+      padding: 12px;
+      background: #0284c7;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 4px;
+    }
+    button.calc-btn:hover {
+      background: #0369a1;
+    }
+    button.nbu-btn {
+      background: #0d9488;
+    }
+    button.nbu-btn:hover {
+      background: #0f766e;
+    }
+    .result-box {
+      margin-top: 18px;
+      padding: 14px;
+      background: #f0f9ff;
+      border-left: 4px solid #0284c7;
+      border-radius: 4px;
+      display: none;
+    }
+    .result-box.nbu-res {
+      background: #f0fdfa;
+      border-left-color: #0d9488;
+    }
+    .result-box p {
+      margin: 6px 0;
+      font-size: 0.95rem;
+    }
+    .highlight {
+      font-weight: 700;
+      color: #0f4c81;
+      font-size: 1.12rem;
+    }
+    .nbu-res .highlight {
+      color: #0f766e;
+    }
+    .note {
+      font-size: 0.82rem;
+      color: #475569;
+      margin-top: 8px;
+      font-style: italic;
+    }
+    .disclaimer {
+      margin-top: 20px;
+      font-size: 0.78rem;
+      color: #64748b;
+      text-align: center;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Clinical Fluid Calculator (Ward & NBU)</h1>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('drip', this)">IV Drip Rate</button>
+      <button class="tab-btn" onclick="switchTab('wardMaint', this)">Adult/Paed 4-2-1</button>
+      <button class="tab-btn nbu-tab" onclick="switchTab('nbuTfi', this)">NBU Neonate TFI</button>
+      <button class="tab-btn" onclick="switchTab('balance', this)">Shift I&O Balance</button>
+    </div>
+
+    <!-- 1. IV Flow & Drip Rate (Shared) -->
+    <div id="drip" class="section active">
+      <span class="badge badge-ward">All Units (Use 60 gtt/mL for NBU/Paeds)</span>
+      <div class="form-group">
+        <label for="volume">Total Volume to Infuse (mL)</label>
+        <input type="number" id="volume" placeholder="e.g., 500 or 45" min="0" step="any" />
+      </div>
+      <div class="row">
+        <div class="form-group">
+          <label for="time">Infusion Time</label>
+          <input type="number" id="time" placeholder="e.g., 8 or 24" min="0" step="any" />
+        </div>
+        <div class="form-group">
+          <label for="timeUnit">Time Unit</label>
+          <select id="timeUnit">
+            <option value="hours">Hours</option>
+            <option value="minutes">Minutes</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="dropFactor">Tubing Drop Factor (gtt/mL)</label>
+        <select id="dropFactor">
+          <option value="60" selected>60 gtt/mL (Microdrip / Burette / NBU)</option>
+          <option value="20">20 gtt/mL (Standard Macrodrip)</option>
+          <option value="15">15 gtt/mL (Macrodrip)</option>
+          <option value="10">10 gtt/mL (Blood / Macrodrip)</option>
+        </select>
+      </div>
+      <button class="calc-btn" onclick="calculateDrip()">Calculate Flow & Drip Rate</button>
+      <div id="dripResult" class="result-box"></div>
+    </div>
+
+    <!-- 2. Adult & Older Pediatric Maintenance (4-2-1 Rule) -->
+    <div id="wardMaint" class="section">
+      <span class="badge badge-ward">General Ward / Paediatrics (> 28 Days Old)</span>
+      <div class="form-group">
+        <label for="wardWeight">Patient Weight (kg)</label>
+        <input type="number" id="wardWeight" placeholder="e.g., 18 or 65" min="0" step="any" />
+      </div>
+      <div class="form-group">
+        <label for="multiplier">Clinical Maintenance Factor</label>
+        <select id="multiplier">
+          <option value="1" selected>1.0x (Standard Maintenance)</option>
+          <option value="0.75">0.75x (Fluid Restriction / Cardiac / Renal)</option>
+          <option value="1.5">1.5x (Fever / Increased Losses)</option>
+        </select>
+      </div>
+      <button class="calc-btn" onclick="calculateWardMaintenance()">Calculate 4-2-1 Maintenance</button>
+      <div id="wardMaintResult" class="result-box"></div>
+    </div>
+
+    <!-- 3. NBU Neonatal Total Fluid Intake (TFI) -->
+    <div id="nbuTfi" class="section">
+      <span class="badge badge-nbu">Newborn Unit (0–28 Days / Premature)</span>
+      <div class="row">
+        <div class="form-group">
+          <label for="nbuWeight">Working Weight (kg)</label>
+          <input type="number" id="nbuWeight" placeholder="e.g., 1.85 or 3.2" min="0.3" max="10" step="any" />
+        </div>
+        <div class="form-group">
+          <label for="dayOfLife">Day of Life (MoH Protocol)</label>
+          <select id="dayOfLife" onchange="updateNbuRatePreview()">
+            <option value="60">Day 1 (60 mL/kg/day)</option>
+            <option value="80">Day 2 (80 mL/kg/day)</option>
+            <option value="100">Day 3 (100 mL/kg/day)</option>
+            <option value="120">Day 4 (120 mL/kg/day)</option>
+            <option value="150">Day 5+ (150 mL/kg/day)</option>
+            <option value="custom">Custom Target (mL/kg/day)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group" id="customRateGroup" style="display: none;">
+        <label for="customRate">Custom Target Rate (mL/kg/day)</label>
+        <input type="number" id="customRate" placeholder="e.g., 70 or 160" min="10" max="250" step="any" />
+      </div>
+
+      <div class="checkbox-group">
+        <label style="margin-bottom: 8px;">Insensible Water Loss Adjustments:</label>
+        <label class="checkbox-item">
+          <input type="checkbox" id="photoTherapy" />
+          Phototherapy (+15 mL/kg/day)
+        </label>
+        <label class="checkbox-item">
+          <input type="checkbox" id="radiantWarmer" />
+          Radiant Warmer / VLBW &lt;1.5kg (+15 mL/kg/day)
+        </label>
+      </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label for="feedPerStep">Enteral Feed Volume (mL)</label>
+          <input type="number" id="feedPerStep" value="0" min="0" step="any" />
+        </div>
+        <div class="form-group">
+          <label for="feedInterval">Feed Frequency</label>
+          <select id="feedInterval">
+            <option value="8">Every 3 Hours (8 feeds/day)</option>
+            <option value="12">Every 2 Hours (12 feeds/day)</option>
+            <option value="1">Total 24-Hr Feeds Entered</option>
+          </select>
+        </div>
+      </div>
+
+      <button class="calc-btn nbu-btn" onclick="calculateNbuTfi()">Calculate NBU Fluids</button>
+      <div id="nbuResult" class="result-box nbu-res"></div>
+    </div>
+
+    <!-- 4. Shift Intake & Output Balance (Shared) -->
+    <div id="balance" class="section">
+      <span class="badge badge-ward">All Units (Track Strict mL in NBU)</span>
+      <div class="row">
+        <div class="form-group">
+          <label for="ivIn">IV Fluids & Flushes In (mL)</label>
+          <input type="number" id="ivIn" value="0" min="0" step="any" />
+        </div>
+        <div class="form-group">
+          <label for="oralIn">Oral / EBM / NGT In (mL)</label>
+          <input type="number" id="oralIn" value="0" min="0" step="any" />
+        </div>
+      </div>
+      <div class="row">
+        <div class="form-group">
+          <label for="urineOut">Urine Output / Diaper Wt (mL)</label>
+          <input type="number" id="urineOut" value="0" min="0" step="any" />
+        </div>
+        <div class="form-group">
+          <label for="otherOut">Aspirates / Drains / Stool (mL)</label>
+          <input type="number" id="otherOut" value="0" min="0" step="any" />
+        </div>
+      </div>
+      <button class="calc-btn" onclick="calculateBalance()">Calculate Net Balance</button>
+      <div id="balanceResult" class="result-box"></div>
+    </div>
+
+    <div class="disclaimer">
+      Always verify calculations against physician orders, institutional protocols, and patient clinical status.<br />
+      This is for informational purposes only. For medical advice or diagnosis, consult a professional. AI responses may include mistakes.
+    </div>
+  </div>
+
+  <script>
+    function switchTab(tabId, btnElement) {
+      document.querySelectorAll('.section').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      btnElement.classList.add('active');
+    }
+
+    function updateNbuRatePreview() {
+      const selectVal = document.getElementById('dayOfLife').value;
+      const customGroup = document.getElementById('customRateGroup');
+      customGroup.style.display = selectVal === 'custom' ? 'block' : 'none';
+    }
+
+    function calculateDrip() {
+      const vol = parseFloat(document.getElementById('volume').value);
+      const time = parseFloat(document.getElementById('time').value);
+      const unit = document.getElementById('timeUnit').value;
+      const factor = parseFloat(document.getElementById('dropFactor').value);
+      const resBox = document.getElementById('dripResult');
+
+      if (!vol || !time || vol <= 0 || time <= 0) {
+        alert("Please enter valid positive numbers for volume and time.");
+        return;
+      }
+
+      const timeInMinutes = unit === 'hours' ? time * 60 : time;
+      const timeInHours = unit === 'hours' ? time : time / 60;
+
+      const mlPerHour = vol / timeInHours;
+      const gttPerMin = (vol / timeInMinutes) * factor;
+
+      resBox.style.display = 'block';
+      resBox.innerHTML = `
+        <p>Infusion Pump / Syringe Rate: <span class="highlight">${mlPerHour.toFixed(1)} mL/hr</span></p>
+        <p>Gravity / Burette Drip Rate: <span class="highlight">${Math.round(gttPerMin)} gtt/min</span> (exact: ${gttPerMin.toFixed(1)})</p>
+      `;
+    }
+
+    function calculateWardMaintenance() {
+      const wt = parseFloat(document.getElementById('wardWeight').value);
+      const mult = parseFloat(document.getElementById('multiplier').value);
+      const resBox = document.getElementById('wardMaintResult');
+
+      if (!wt || wt <= 0) {
+        alert("Please enter a valid patient weight in kg.");
+        return;
+      }
+
+      let hourly = 0;
+      if (wt <= 10) {
+        hourly = wt * 4;
+      } else if (wt <= 20) {
+        hourly = (10 * 4) + ((wt - 10) * 2);
+      } else {
+        hourly = (10 * 4) + (10 * 2) + ((wt - 20) * 1);
+      }
+
+      const adjustedHourly = hourly * mult;
+      const dailyTotal = adjustedHourly * 24;
+
+      resBox.style.display = 'block';
+      resBox.innerHTML = `
+        <p>Hourly Maintenance Rate: <span class="highlight">${adjustedHourly.toFixed(1)} mL/hr</span></p>
+        <p>24-Hour Total Volume: <span class="highlight">${Math.round(dailyTotal)} mL/day</span></p>
+        <p class="note">Reminder: Do not use the 4-2-1 rule for neonates &lt; 28 days old. Use the NBU Neonate TFI tab instead.</p>
+      `;
+    }
+
+    function calculateNbuTfi() {
+      const wt = parseFloat(document.getElementById('nbuWeight').value);
+      const daySelect = document.getElementById('dayOfLife').value;
+      const photo = document.getElementById('photoTherapy').checked;
+      const warmer = document.getElementById('radiantWarmer').checked;
+      const feedVol = parseFloat(document.getElementById('feedPerStep').value) || 0;
+      const feedFreq = parseFloat(document.getElementById('feedInterval').value);
+      const resBox = document.getElementById('nbuResult');
+
+      if (!wt || wt <= 0) {
+        alert("Please enter a valid newborn weight in kg (e.g., 1.85).");
+        return;
+      }
+
+      let baseMlPerKg = daySelect === 'custom' 
+        ? parseFloat(document.getElementById('customRate').value) 
+        : parseFloat(daySelect);
+
+      if (!baseMlPerKg || baseMlPerKg <= 0) {
+        alert("Please enter a valid custom target rate in mL/kg/day.");
+        return;
+      }
+
+      let extraMlPerKg = 0;
+      if (photo) extraMlPerKg += 15;
+      if (warmer) extraMlPerKg += 15;
+
+      const totalMlPerKg = baseMlPerKg + extraMlPerKg;
+      const totalDailyTfi = wt * totalMlPerKg;
+      const totalEnteralDaily = feedVol * feedFreq;
+      const remainingIvDaily = Math.max(0, totalDailyTfi - totalEnteralDaily);
+      const ivHourlyRate = remainingIvDaily / 24;
+      const microdripRate = Math.round(ivHourlyRate);
+
+      resBox.style.display = 'block';
+      resBox.innerHTML = `
+        <p>Target Allowance: <strong>${totalMlPerKg} mL/kg/day</strong> (Base ${baseMlPerKg} + Extra ${extraMlPerKg})</p>
+        <p>Total Daily Fluid Intake (TFI): <span class="highlight">${totalDailyTfi.toFixed(1)} mL/day</span></p>
+        <p>Total Enteral Feeds: <strong>${totalEnteralDaily.toFixed(1)} mL/day</strong></p>
+        <hr style="border: 0; border-top: 1px solid #99f6e4; margin: 8px 0;">
+        <p>Remaining IV Volume: <strong>${remainingIvDaily.toFixed(1)} mL/day</strong></p>
+        <p>IV Infusion / Burette Rate: <span class="highlight">${ivHourlyRate.toFixed(1)} mL/hr</span> (${microdripRate} microdrops/min)</p>
+        <p class="note">Note: Use birth weight until current weight exceeds birth weight. Remember to account for IV antibiotic/medication flush volumes in your shift balance.</p>
+      `;
+    }
+
+    function calculateBalance() {
+      const ivIn = parseFloat(document.getElementById('ivIn').value) || 0;
+      const oralIn = parseFloat(document.getElementById('oralIn').value) || 0;
+      const urineOut = parseFloat(document.getElementById('urineOut').value) || 0;
+      const otherOut = parseFloat(document.getElementById('otherOut').value) || 0;
+      const resBox = document.getElementById('balanceResult');
+
+      const totalIn = ivIn + oralIn;
+      const totalOut = urineOut + otherOut;
+      const net = totalIn - totalOut;
+      const sign = net > 0 ? '+' : '';
+
+      resBox.style.display = 'block';
+      resBox.innerHTML = `
+        <p>Total Intake: <strong>${totalIn.toFixed(1)} mL</strong> | Total Output: <strong>${totalOut.toFixed(1)} mL</strong></p>
+        <p>Net Fluid Balance: <span class="highlight">${sign}${net.toFixed(1)} mL</span></p>
+      `;
+    }
+  </script>
+</body>
+</html>
